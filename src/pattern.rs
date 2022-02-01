@@ -372,6 +372,24 @@ where
     fn vars(&self) -> Vec<Var> {
         Pattern::vars(self)
     }
+
+    fn is_relevant(&self, egraph: &EGraph<L, A>, eclass: Id, subst: &Subst) -> bool {
+        let mut ids = Vec::with_capacity(self.ast.as_ref().len());
+        for pat_node in self.ast.as_ref() {
+            let id = match pat_node {
+                ENodeOrVar::Var(w) => subst[*w],
+                ENodeOrVar::ENode(e) => {
+                    let n = e.clone().map_children(|child| ids[usize::from(child)]);
+                    match egraph.lookup(n) {
+                        Some(id) => id,
+                        None => return true,
+                    }
+                }
+            };
+            ids.push(id);
+        }
+        egraph.find(*ids.last().unwrap()) != egraph.find(eclass)
+    }
 }
 
 pub(crate) fn apply_pat<L: Language, A: Analysis<L>>(

@@ -330,6 +330,12 @@ where
     fn vars(&self) -> Vec<Var> {
         vec![]
     }
+
+    #[allow(unused_variables)]
+    /// Whether or not this match will be relevant. Default impl returns `true`.
+    fn is_relevant(&self, egraph: &EGraph<L, N>, eclass: Id, subst: &Subst) -> bool {
+        true
+    }
 }
 
 /// An [`Applier`] that checks a [`Condition`] before applying.
