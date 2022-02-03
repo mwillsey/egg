@@ -158,7 +158,6 @@ pub struct Runner<L: Language, N: Analysis<L>, IterData = ()> {
 
     start_time: Option<Instant>,
     scheduler: Box<dyn RewriteScheduler<L, N>>,
-    filter_pattern_matches: bool,
 }
 
 impl<L, N> Default for Runner<L, N, ()>
@@ -190,7 +189,6 @@ where
             time_limit,
             start_time,
             scheduler: _,
-            filter_pattern_matches,
         } = self;
 
         f.debug_struct("Runner")
@@ -203,7 +201,6 @@ where
             .field("node_limit", node_limit)
             .field("time_limit", time_limit)
             .field("start_time", start_time)
-            .field("filter_pattern_matches", filter_pattern_matches)
             .field("scheduler", &format_args!("<dyn RewriteScheduler ..>"))
             .finish()
     }
@@ -329,7 +326,6 @@ where
 
             start_time: None,
             scheduler: Box::new(BackoffScheduler::default()),
-            filter_pattern_matches: true,
         }
     }
 
@@ -529,14 +525,7 @@ where
         let mut matches = Vec::new();
         result = result.and_then(|_| {
             rules.iter().try_for_each(|rule| {
-                let mut ms = self.scheduler.search_rewrite(i, &self.egraph, rule);
-                if self.filter_pattern_matches {
-                    for m in &mut ms {
-                        let id = m.eclass;
-                        m.substs
-                            .retain(|subst| rule.applier.is_relevant(&self.egraph, id, subst));
-                    }
-                }
+                let ms = self.scheduler.search_rewrite(i, &self.egraph, rule);
                 matches.push(ms);
                 self.check_limits()
             })

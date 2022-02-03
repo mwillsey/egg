@@ -328,7 +328,7 @@ egg::test_fn! {
     lambda_fib, rules(),
     runner = Runner::default()
         .with_iter_limit(60)
-        .with_node_limit(50_000),
+        .with_node_limit(60_000),
     "(let fib (fix fib (lam n
         (if (= (var n) 0)
             0

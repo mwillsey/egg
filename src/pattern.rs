@@ -263,6 +263,14 @@ impl<L: Language, A: Analysis<L>> Searcher<L, A> for Pattern<L> {
     }
 
     fn search(&self, egraph: &EGraph<L, A>) -> Vec<SearchMatches<L>> {
+        self.filtered_search(egraph, &|_, _| true)
+    }
+
+    fn filtered_search(
+        &self,
+        egraph: &EGraph<L, A>,
+        filter: &dyn Fn(Id, &Subst) -> bool,
+    ) -> Vec<SearchMatches<L>> {
         match self.ast.as_ref().last().unwrap() {
             ENodeOrVar::ENode(e) => {
                 #[allow(clippy::mem_discriminant_non_enum)]
@@ -271,19 +279,37 @@ impl<L: Language, A: Analysis<L>> Searcher<L, A> for Pattern<L> {
                     None => vec![],
                     Some(ids) => ids
                         .iter()
-                        .filter_map(|&id| self.search_eclass(egraph, id))
+                        .filter_map(|&id| self.filter_search_eclass(egraph, id, filter))
                         .collect(),
                 }
             }
             ENodeOrVar::Var(_) => egraph
                 .classes()
-                .filter_map(|e| self.search_eclass(egraph, e.id))
+                .filter_map(|e| self.filter_search_eclass(egraph, e.id, filter))
                 .collect(),
         }
     }
 
     fn search_eclass(&self, egraph: &EGraph<L, A>, eclass: Id) -> Option<SearchMatches<L>> {
-        let substs = self.program.run(egraph, eclass);
+        self.filter_search_eclass(egraph, eclass, &|_, _| true)
+    }
+
+    fn vars(&self) -> Vec<Var> {
+        Pattern::vars(self)
+    }
+}
+
+impl<L> Pattern<L>
+where
+    L: Language,
+{
+    fn filter_search_eclass<A: Analysis<L>>(
+        &self,
+        egraph: &EGraph<L, A>,
+        eclass: Id,
+        filter: &dyn Fn(Id, &Subst) -> bool,
+    ) -> Option<SearchMatches<L>> {
+        let substs = self.program.run(egraph, eclass, filter);
         if substs.is_empty() {
             None
         } else {
@@ -294,10 +320,6 @@ impl<L: Language, A: Analysis<L>> Searcher<L, A> for Pattern<L> {
                 ast,
             })
         }
-    }
-
-    fn vars(&self) -> Vec<Var> {
-        Pattern::vars(self)
     }
 }
 

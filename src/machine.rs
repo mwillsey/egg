@@ -268,7 +268,12 @@ impl<L: Language> Program<L> {
         program
     }
 
-    pub fn run<A>(&self, egraph: &EGraph<L, A>, eclass: Id) -> Vec<Subst>
+    pub fn run<A>(
+        &self,
+        egraph: &EGraph<L, A>,
+        eclass: Id,
+        filter: &dyn Fn(Id, &Subst) -> bool,
+    ) -> Vec<Subst>
     where
         A: Analysis<L>,
     {
@@ -290,7 +295,10 @@ impl<L: Language> Program<L> {
                     // HACK we are reusing Ids here, this is bad
                     .map(|(v, reg_id)| (*v, machine.reg(Reg(usize::from(*reg_id) as u32))))
                     .collect();
-                matches.push(Subst { vec: subst_vec });
+                let subst = Subst { vec: subst_vec };
+                if filter(eclass, &subst) {
+                    matches.push(subst);
+                }
             },
         );
 

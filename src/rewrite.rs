@@ -80,7 +80,9 @@ impl<L: Language, N: Analysis<L>> Rewrite<L, N> {
     ///
     /// [`search`]: Searcher::search()
     pub fn search(&self, egraph: &EGraph<L, N>) -> Vec<SearchMatches<L>> {
-        self.searcher.search(egraph)
+        self.searcher.filtered_search(egraph, &|id, subst| {
+            self.applier.is_relevant(egraph, id, subst)
+        })
     }
 
     /// Call [`apply_matches`] on the [`Applier`].
@@ -139,6 +141,15 @@ where
             .classes()
             .filter_map(|e| self.search_eclass(egraph, e.id))
             .collect()
+    }
+
+    /// Search, but given a filter predicate to filter out redundant matches
+    fn filtered_search(
+        &self,
+        egraph: &EGraph<L, N>,
+        _filter: &dyn Fn(Id, &Subst) -> bool,
+    ) -> Vec<SearchMatches<L>> {
+        self.search(egraph)
     }
 
     /// Returns the number of matches in the e-graph
